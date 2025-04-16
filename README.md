@@ -42,8 +42,8 @@ A beautifully designed Flutter application to manage daily tasks and schedules w
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/timetable-app.git
-cd timetable-app
+git clone https://github.com/Aliasgar-Jiwani/routino.git
+cd routino
 
 # Install dependencies
 flutter pub get
