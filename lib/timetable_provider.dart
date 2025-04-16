@@ -34,10 +34,10 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   void updateEntry(TimetableEntry oldEntry, TimetableEntry newEntry) {
-    final index = _timetableBox.values.toList().indexOf(oldEntry);
-    if (index >= 0) {
-      _timetableBox.putAt(index, newEntry);
-      loadTimetable();
+    final key = oldEntry.key; // Get the entry's unique key
+    if (key != null && _timetableBox.containsKey(key)) {
+      _timetableBox.put(key, newEntry); // Update using the key
+      loadTimetable(); // Refresh the UI
     }
   }
 

@@ -462,90 +462,91 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     TimeOfDay startTime = entry.startTime;
     TimeOfDay endTime = entry.endTime;
     String? notes = entry.notes;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Edit Timetable Entry'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: day,
-                    decoration: const InputDecoration(labelText: 'Day of the Week'),
-                    items: const [
-                      'Monday',
-                      'Tuesday',
-                      'Wednesday',
-                      'Thursday',
-                      'Friday',
-                      'Saturday',
-                      'Sunday',
-                    ].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      day = newValue!;
-                    },
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: day,
+                        decoration: const InputDecoration(labelText: 'Day of the Week'),
+                        items: const [
+                          'Monday',
+                          'Tuesday',
+                          'Wednesday',
+                          'Thursday',
+                          'Friday',
+                          'Saturday',
+                          'Sunday',
+                        ].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() => day = newValue!);
+                        },
+                      ),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Task Name'),
+                        initialValue: taskName,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a task name';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => setState(() => taskName = value),
+                      ),
+                      ListTile(
+                        title: const Text('Start Time'),
+                        subtitle: Text(_formatTimeOfDay(startTime)),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () async {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: startTime,
+                          );
+                          if (pickedTime != null) {
+                            setState(() => startTime = pickedTime);
+                          }
+                        },
+                      ),
+                      ListTile(
+                        title: const Text('End Time'),
+                        subtitle: Text(_formatTimeOfDay(endTime)),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () async {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: endTime,
+                          );
+                          if (pickedTime != null) {
+                            setState(() => endTime = pickedTime);
+                          }
+                        },
+                      ),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Notes (Optional)'),
+                        initialValue: notes,
+                        maxLines: 2,
+                        onChanged: (value) => setState(() => notes = value),
+                      ),
+                    ],
                   ),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'Task Name'),
-                    initialValue: taskName,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a task name';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      taskName = value;
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Start Time'),
-                    subtitle: Text(_formatTimeOfDay(startTime)),
-                    trailing: const Icon(Icons.access_time),
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: startTime,
-                      );
-                      if (pickedTime != null) {
-                        startTime = pickedTime;
-                      }
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('End Time'),
-                    subtitle: Text(_formatTimeOfDay(endTime)),
-                    trailing: const Icon(Icons.access_time),
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: endTime,
-                      );
-                      if (pickedTime != null) {
-                        endTime = pickedTime;
-                      }
-                    },
-                  ),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'Notes (Optional)'),
-                    initialValue: notes,
-                    maxLines: 2,
-                    onChanged: (value) {
-                      notes = value;
-                    },
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
           actions: [
             TextButton(
