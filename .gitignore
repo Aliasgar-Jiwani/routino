@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# iOS related
+ios/Flutter/.flutter-plugins
+ios/Pods/
+ios/.symlinks/
+
+# macOS related
+macos/Flutter/Flutter.podspec
+
+# Linux related
+linux/flutter/ephemeral/
+
+# Web related
+web/.dart_tool/
+
+# Windows related
+windows/.dart_tool/
