@@ -21,6 +21,7 @@ class TimetableProvider extends ChangeNotifier {
 
   TimetableProvider() {
     loadTimetable();
+    _selectedDay = _getCurrentDay(); // Initialize with current day
   }
 
   void loadTimetable() {
@@ -81,8 +82,7 @@ class TimetableProvider extends ChangeNotifier {
     return days[now.weekday - 1];
   }
 
-  List<TimetableEntry> getTodayEntries() {
-    final day = selectedDay;
+  List<TimetableEntry> getEntriesForDay(String day) {
     return _entries.where((entry) => entry.day == day).toList()
       ..sort((a, b) {
         final aMinutes = a.startTime.hour * 60 + a.startTime.minute;
@@ -91,9 +91,29 @@ class TimetableProvider extends ChangeNotifier {
       });
   }
 
+  List<TimetableEntry> getTodayEntries() {
+    return getEntriesForDay(selectedDay);
+  }
+
+  List<String> getAllDays() {
+    return [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+  }
+
   TimetableEntry? getCurrentTask() {
     final now = TimeOfDay.now();
     final nowMinutes = now.hour * 60 + now.minute;
+
+    // Only check for current tasks if the selected day is the current day
+    if (selectedDay != _getCurrentDay()) return null;
+
     final todayEntries = getTodayEntries();
     if (todayEntries.isEmpty) return null;
 
@@ -121,6 +141,9 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   TimetableEntry? getNextTask() {
+    // Only check for next tasks if the selected day is the current day
+    if (selectedDay != _getCurrentDay()) return null;
+
     final now = TimeOfDay.now();
     final nowMinutes = now.hour * 60 + now.minute;
     final todayEntries = getTodayEntries();
@@ -134,6 +157,9 @@ class TimetableProvider extends ChangeNotifier {
   }
 
   double getCurrentProgressInDay() {
+    // Only show progress if the selected day is the current day
+    if (selectedDay != _getCurrentDay()) return 0.0;
+
     final todayEntries = getTodayEntries();
     if (todayEntries.isEmpty) return 0.0;
     final now = TimeOfDay.now();
@@ -241,9 +267,10 @@ class TimetableProvider extends ChangeNotifier {
       await notificationsPlugin.cancelAll();
       print('Cancelled all existing notifications');
 
-      // Get today's timetable entries
-      final todayEntries = getTodayEntries();
-      print('Found ${todayEntries.length} entries for today (${selectedDay})');
+      // Get entries for the current day (not selected day)
+      final currentDay = _getCurrentDay();
+      final todayEntries = getEntriesForDay(currentDay);
+      print('Found ${todayEntries.length} entries for today ($currentDay)');
 
       if (todayEntries.isEmpty) {
         print('No tasks to schedule notifications for');
@@ -263,13 +290,15 @@ class TimetableProvider extends ChangeNotifier {
           entry.startTime.minute,
         );
 
-        // Schedule notification 5 minutes before task starts
-        final notificationTime = taskStartTime.subtract(const Duration(minutes: 5));
+        // 1. Schedule notification 5 minutes before task starts
+        final preNotificationTime = taskStartTime.subtract(const Duration(minutes: 5));
 
-        print('Task: ${entry.taskName}, Start: ${entry.startTime.hour}:${entry.startTime.minute}, ' + 'Notify at: ${notificationTime.hour}:${notificationTime.minute}');
+        print('Task: ${entry.taskName}, Start: ${entry.startTime.hour}:${entry.startTime.minute}');
+        print('Pre-notification at: ${preNotificationTime.hour}:${preNotificationTime.minute}');
+        print('Start notification at: ${taskStartTime.hour}:${taskStartTime.minute}');
 
         // Only schedule if the notification time is in the future
-        if (notificationTime.isAfter(now)) {
+        if (preNotificationTime.isAfter(now)) {
           try {
             final androidDetails = AndroidNotificationDetails(
               'timetable_channel',
@@ -285,43 +314,242 @@ class TimetableProvider extends ChangeNotifier {
                 500,
                 1000
               ]),
-              // Fix the category to use an enum value instead of a string
               category: AndroidNotificationCategory.reminder,
               visibility: NotificationVisibility.public,
             );
 
             final platformDetails = NotificationDetails(android: androidDetails);
 
-            // Create a unique ID for this notification based on task attributes
-            final notificationId = '${entry.day}${entry.taskName}${entry.startTime.hour}${entry.startTime.minute}'.hashCode;
+            // Create a unique ID for the pre-notification
+            final preNotificationId = '${entry.day}${entry.taskName}${entry.startTime.hour}${entry.startTime.minute}_pre'.hashCode;
 
             // Convert to timezone DateTime
-            final tzDateTime = tz.TZDateTime.from(notificationTime, tz.local);
-            print('Scheduling notification ID $notificationId for ${entry.taskName} at $tzDateTime');
+            final tzPreDateTime = tz.TZDateTime.from(preNotificationTime, tz.local);
+            print('Scheduling pre-notification ID $preNotificationId for ${entry.taskName} at $tzPreDateTime');
 
             await notificationsPlugin.zonedSchedule(
-              notificationId,
-              'Time for ${entry.taskName}',
+              preNotificationId,
+              'Time for ${entry.taskName} soon',
               'Starting in 5 minutes',
-              tzDateTime,
+              tzPreDateTime,
               platformDetails,
               androidAllowWhileIdle: true,
               uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
             );
 
-            print('Successfully scheduled notification for ${entry.taskName}');
+            print('Successfully scheduled pre-notification for ${entry.taskName}');
             scheduledCount++;
           } catch (e) {
-            print('Failed to schedule notification for ${entry.taskName}: $e');
+            print('Failed to schedule pre-notification for ${entry.taskName}: $e');
           }
         } else {
-          print('Skipping notification for ${entry.taskName} - time already passed');
+          print('Skipping pre-notification for ${entry.taskName} - time already passed');
+        }
+
+        // 2. Schedule notification at task start time
+        if (taskStartTime.isAfter(now)) {
+          try {
+            final androidDetails = AndroidNotificationDetails(
+              'timetable_channel',
+              'Timetable Notifications',
+              channelDescription: 'Notifications for task start',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+              vibrationPattern: Int64List.fromList([
+                0,
+                1000,
+                500,
+                1000
+              ]),
+              category: AndroidNotificationCategory.reminder,
+              visibility: NotificationVisibility.public,
+            );
+
+            final platformDetails = NotificationDetails(android: androidDetails);
+
+            // Create a unique ID for the start notification
+            final startNotificationId = '${entry.day}${entry.taskName}${entry.startTime.hour}${entry.startTime.minute}_start'.hashCode;
+
+            // Convert to timezone DateTime
+            final tzStartDateTime = tz.TZDateTime.from(taskStartTime, tz.local);
+            print('Scheduling start notification ID $startNotificationId for ${entry.taskName} at $tzStartDateTime');
+
+            await notificationsPlugin.zonedSchedule(
+              startNotificationId,
+              'Time for ${entry.taskName}',
+              'Task is starting now',
+              tzStartDateTime,
+              platformDetails,
+              androidAllowWhileIdle: true,
+              uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            );
+
+            print('Successfully scheduled start notification for ${entry.taskName}');
+            scheduledCount++;
+          } catch (e) {
+            print('Failed to schedule start notification for ${entry.taskName}: $e');
+          }
+        } else {
+          print('Skipping start notification for ${entry.taskName} - time already passed');
         }
       }
 
       print('Scheduled $scheduledCount notifications');
     } catch (e) {
       print('Error in scheduleNotifications: $e');
+    }
+  }
+
+  // Schedule notifications for future days
+  void scheduleWeeklyNotifications(FlutterLocalNotificationsPlugin notificationsPlugin) async {
+    _notificationsPlugin = notificationsPlugin;
+    if (!_notificationsEnabled) {
+      print('Notifications are disabled. Not scheduling.');
+      return;
+    }
+
+    print('Scheduling weekly notifications - Start');
+
+    try {
+      // Cancel any existing notifications first
+      await notificationsPlugin.cancelAll();
+      print('Cancelled all existing notifications');
+
+      final now = DateTime.now();
+      final days = getAllDays();
+      final currentDayIndex = now.weekday - 1; // 0-based index (Monday = 0)
+      int scheduledCount = 0;
+
+      // Loop through all days of the week
+      for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+        final dayIndex = (currentDayIndex + dayOffset) % 7;
+        final dayName = days[dayIndex];
+
+        // Calculate the date for this day
+        final targetDate = now.add(Duration(days: dayOffset));
+
+        // Get entries for this day
+        final entries = getEntriesForDay(dayName);
+        print('Found ${entries.length} entries for $dayName');
+
+        for (var entry in entries) {
+          // Create the task start time for this day
+          final taskStartTime = DateTime(
+            targetDate.year,
+            targetDate.month,
+            targetDate.day,
+            entry.startTime.hour,
+            entry.startTime.minute,
+          );
+
+          // 1. Schedule notification 5 minutes before task starts
+          final preNotificationTime = taskStartTime.subtract(const Duration(minutes: 5));
+
+          // Only schedule if the notification time is in the future
+          if (preNotificationTime.isAfter(now)) {
+            try {
+              final androidDetails = AndroidNotificationDetails(
+                'timetable_channel',
+                'Timetable Notifications',
+                channelDescription: 'Notifications for upcoming tasks',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+                enableVibration: true,
+                vibrationPattern: Int64List.fromList([
+                  0,
+                  1000,
+                  500,
+                  1000
+                ]),
+                category: AndroidNotificationCategory.reminder,
+                visibility: NotificationVisibility.public,
+              );
+
+              final platformDetails = NotificationDetails(android: androidDetails);
+
+              // Create a unique ID for the pre-notification
+              final preNotificationId = '${entry.day}${entry.taskName}${entry.startTime.hour}${entry.startTime.minute}${targetDate.day}${targetDate.month}_pre'.hashCode;
+
+              // Convert to timezone DateTime
+              final tzPreDateTime = tz.TZDateTime.from(preNotificationTime, tz.local);
+              print('Scheduling pre-notification ID $preNotificationId for ${entry.taskName} on ${dayName} at $tzPreDateTime');
+
+              await notificationsPlugin.zonedSchedule(
+                preNotificationId,
+                'Time for ${entry.taskName} soon',
+                'Starting in 5 minutes',
+                tzPreDateTime,
+                platformDetails,
+                androidAllowWhileIdle: true,
+                uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+              );
+
+              print('Successfully scheduled pre-notification for ${entry.taskName} on ${dayName}');
+              scheduledCount++;
+            } catch (e) {
+              print('Failed to schedule pre-notification for ${entry.taskName} on ${dayName}: $e');
+            }
+          } else {
+            print('Skipping pre-notification for ${entry.taskName} on ${dayName} - time already passed');
+          }
+
+          // 2. Schedule notification at task start time
+          if (taskStartTime.isAfter(now)) {
+            try {
+              final androidDetails = AndroidNotificationDetails(
+                'timetable_channel',
+                'Timetable Notifications',
+                channelDescription: 'Notifications for task start',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+                enableVibration: true,
+                vibrationPattern: Int64List.fromList([
+                  0,
+                  1000,
+                  500,
+                  1000
+                ]),
+                category: AndroidNotificationCategory.reminder,
+                visibility: NotificationVisibility.public,
+              );
+
+              final platformDetails = NotificationDetails(android: androidDetails);
+
+              // Create a unique ID for the start notification
+              final startNotificationId = '${entry.day}${entry.taskName}${entry.startTime.hour}${entry.startTime.minute}${targetDate.day}${targetDate.month}_start'.hashCode;
+
+              // Convert to timezone DateTime
+              final tzStartDateTime = tz.TZDateTime.from(taskStartTime, tz.local);
+              print('Scheduling start notification ID $startNotificationId for ${entry.taskName} on ${dayName} at $tzStartDateTime');
+
+              await notificationsPlugin.zonedSchedule(
+                startNotificationId,
+                'Time for ${entry.taskName}',
+                'Task is starting now',
+                tzStartDateTime,
+                platformDetails,
+                androidAllowWhileIdle: true,
+                uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+              );
+
+              print('Successfully scheduled start notification for ${entry.taskName} on ${dayName}');
+              scheduledCount++;
+            } catch (e) {
+              print('Failed to schedule start notification for ${entry.taskName} on ${dayName}: $e');
+            }
+          } else {
+            print('Skipping start notification for ${entry.taskName} on ${dayName} - time already passed');
+          }
+        }
+      }
+
+      print('Scheduled $scheduledCount notifications for the week');
+    } catch (e) {
+      print('Error in scheduleWeeklyNotifications: $e');
     }
   }
 

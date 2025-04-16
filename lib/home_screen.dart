@@ -125,54 +125,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildNowTab(TimetableProvider provider) {
     final currentTask = provider.getCurrentTask();
     final nextTask = provider.getNextTask();
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "What's happening now",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          currentTask != null
-              ? _buildTaskCard(currentTask, isCurrentTask: true)
-              : const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No task scheduled for now',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-          const SizedBox(height: 32),
-          const Text(
-            "Coming up next",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          nextTask != null
-              ? _buildTaskCard(nextTask)
-              : const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No upcoming tasks today',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-          if (currentTask != null && provider.getTodayEntries().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: LinearProgressIndicator(
-                value: provider.getCurrentProgressInDay(),
-                minHeight: 10,
-                backgroundColor: Colors.grey[300],
-              ),
+
+    // Wrap the entire content in a SingleChildScrollView to prevent overflow
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "What's happening now",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-        ],
+            const SizedBox(height: 16),
+            currentTask != null
+                ? _buildTaskCard(currentTask, isCurrentTask: true)
+                : const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'No task scheduled for now',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+            const SizedBox(height: 32),
+            const Text(
+              "Coming up next",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            nextTask != null
+                ? _buildTaskCard(nextTask)
+                : const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'No upcoming tasks today',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+            if (currentTask != null && provider.getTodayEntries().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: LinearProgressIndicator(
+                  value: provider.getCurrentProgressInDay(),
+                  minHeight: 10,
+                  backgroundColor: Colors.grey[300],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -433,17 +437,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             TextButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  provider.addEntry(
-                    TimetableEntry(
-                      day: day,
-                      taskName: taskName,
-                      startTime: startTime,
-                      endTime: endTime,
-                      notes: notes,
-                    ),
+                  final newEntry = TimetableEntry(
+                    day: day,
+                    taskName: taskName,
+                    startTime: startTime,
+                    endTime: endTime,
+                    notes: notes,
                   );
+                  provider.addEntry(newEntry);
                   provider.scheduleNotifications(_notificationsPlugin);
                   Navigator.pop(context);
+
+                  // Show success notification
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Task "$taskName" added successfully for $day'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                 }
               },
               child: const Text('Add'),
@@ -556,18 +568,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             TextButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  provider.updateEntry(
-                    entry,
-                    TimetableEntry(
-                      day: day,
-                      taskName: taskName,
-                      startTime: startTime,
-                      endTime: endTime,
-                      notes: notes,
-                    ),
+                  final updatedEntry = TimetableEntry(
+                    day: day,
+                    taskName: taskName,
+                    startTime: startTime,
+                    endTime: endTime,
+                    notes: notes,
                   );
+                  provider.updateEntry(entry, updatedEntry);
                   provider.scheduleNotifications(_notificationsPlugin);
                   Navigator.pop(context);
+
+                  // Show success notification for edit
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Task "$taskName" updated successfully for $day'),
+                      backgroundColor: Colors.blue,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                 }
               },
               child: const Text('Save'),
@@ -592,8 +611,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             TextButton(
               onPressed: () {
+                final taskName = entry.taskName;
+                final day = entry.day;
                 Provider.of<TimetableProvider>(context, listen: false).deleteEntry(entry);
                 Navigator.pop(context);
+
+                // Show success notification for delete
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Task "$taskName" deleted from $day'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
               child: const Text('Delete'),
             ),
@@ -621,6 +651,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onPressed: () {
                 Provider.of<TimetableProvider>(context, listen: false).resetTimetable();
                 Navigator.pop(context);
+
+                // Show notification for reset
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Timetable has been reset'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               },
               child: const Text('Reset'),
             ),
