@@ -36,9 +36,6 @@
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false" />
-        <service
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
-            android:exported="false" />
         
         <!-- Flutter meta-data for embedding -->
         <meta-data
