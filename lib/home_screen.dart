@@ -338,6 +338,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _showAddEntryDialog(BuildContext context) {
     final provider = Provider.of<TimetableProvider>(context, listen: false);
     final formKey = GlobalKey<FormState>();
+
+    // Initial values
     String day = 'Monday';
     String taskName = '';
     TimeOfDay startTime = TimeOfDay.now();
@@ -346,9 +348,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       minute: TimeOfDay.now().minute,
     );
     String? notes;
+
+    // Value notifiers for reactive updates
+    final dayNotifier = ValueNotifier<String>(day);
+    final startTimeNotifier = ValueNotifier<TimeOfDay>(startTime);
+    final endTimeNotifier = ValueNotifier<TimeOfDay>(endTime);
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Add Timetable Entry'),
           content: Form(
@@ -357,27 +365,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DropdownButtonFormField<String>(
-                    value: day,
-                    decoration: const InputDecoration(labelText: 'Day of the Week'),
-                    items: const [
-                      'Monday',
-                      'Tuesday',
-                      'Wednesday',
-                      'Thursday',
-                      'Friday',
-                      'Saturday',
-                      'Sunday',
-                    ].map((String value) {
-                      return DropdownMenuItem<String>(
+                  // Day dropdown
+                  ValueListenableBuilder<String>(
+                    valueListenable: dayNotifier,
+                    builder: (context, value, child) {
+                      return DropdownButtonFormField<String>(
                         value: value,
-                        child: Text(value),
+                        decoration: const InputDecoration(labelText: 'Day of the Week'),
+                        items: const [
+                          'Monday',
+                          'Tuesday',
+                          'Wednesday',
+                          'Thursday',
+                          'Friday',
+                          'Saturday',
+                          'Sunday',
+                        ].map((String day) {
+                          return DropdownMenuItem<String>(
+                            value: day,
+                            child: Text(day),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          if (newValue != null) {
+                            dayNotifier.value = newValue;
+                            day = newValue;
+                          }
+                        },
                       );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      day = newValue!;
                     },
                   ),
+
+                  // Task name field
                   TextFormField(
                     decoration: const InputDecoration(labelText: 'Task Name'),
                     validator: (value) {
@@ -390,34 +409,52 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       taskName = value;
                     },
                   ),
-                  ListTile(
-                    title: const Text('Start Time'),
-                    subtitle: Text(_formatTimeOfDay(startTime)),
-                    trailing: const Icon(Icons.access_time),
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: startTime,
+
+                  // Start time
+                  ValueListenableBuilder<TimeOfDay>(
+                    valueListenable: startTimeNotifier,
+                    builder: (context, value, child) {
+                      return ListTile(
+                        title: const Text('Start Time'),
+                        subtitle: Text(_formatTimeOfDay(value)),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () async {
+                          final pickedTime = await showTimePicker(
+                            context: dialogContext,
+                            initialTime: value,
+                          );
+                          if (pickedTime != null) {
+                            startTimeNotifier.value = pickedTime;
+                            startTime = pickedTime;
+                          }
+                        },
                       );
-                      if (pickedTime != null) {
-                        startTime = pickedTime;
-                      }
                     },
                   ),
-                  ListTile(
-                    title: const Text('End Time'),
-                    subtitle: Text(_formatTimeOfDay(endTime)),
-                    trailing: const Icon(Icons.access_time),
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: endTime,
+
+                  // End time
+                  ValueListenableBuilder<TimeOfDay>(
+                    valueListenable: endTimeNotifier,
+                    builder: (context, value, child) {
+                      return ListTile(
+                        title: const Text('End Time'),
+                        subtitle: Text(_formatTimeOfDay(value)),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () async {
+                          final pickedTime = await showTimePicker(
+                            context: dialogContext,
+                            initialTime: value,
+                          );
+                          if (pickedTime != null) {
+                            endTimeNotifier.value = pickedTime;
+                            endTime = pickedTime;
+                          }
+                        },
                       );
-                      if (pickedTime != null) {
-                        endTime = pickedTime;
-                      }
                     },
                   ),
+
+                  // Notes field
                   TextFormField(
                     decoration: const InputDecoration(labelText: 'Notes (Optional)'),
                     maxLines: 2,
@@ -431,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             TextButton(
@@ -446,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   );
                   provider.addEntry(newEntry);
                   provider.scheduleNotifications(_notificationsPlugin);
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
 
                   // Show success notification
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -463,7 +500,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ],
         );
       },
-    );
+    ).then((_) {
+      // Clean up
+      dayNotifier.dispose();
+      startTimeNotifier.dispose();
+      endTimeNotifier.dispose();
+    });
   }
 
   void _showEditEntryDialog(BuildContext context, TimetableEntry entry) {

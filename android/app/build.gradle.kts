@@ -29,8 +29,14 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -40,5 +46,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4") // 👈 Add this to support Java 8+ features on older Android
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4") // 👈 Supports Java 8+ features on older Android
 }
