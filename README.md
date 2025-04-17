@@ -32,22 +32,23 @@ A beautifully designed Flutter application to manage daily tasks and schedules w
 
 ## Screenshots 📸
 
-### Splash Screen 
-![screen1](ScreenShots/screen1.jpeg)
+### Splash Screen  
+![screen1](ScreenShots/screen1.jpeg =300x)
 
-### Current and Upcoming Tasks
-![screen2](ScreenShots/screen2.jpeg)
+### Current and Upcoming Tasks  
+![screen2](ScreenShots/screen2.jpeg =300x)
 
 ### Current Day Task  
-![screen3](ScreenShots/screen3.jpeg)
+![screen3](ScreenShots/screen3.jpeg =300x)
 
 ### Setting  
-![screen4](ScreenShots/screen4.jpeg)
+![screen4](ScreenShots/screen4.jpeg =300x)
 
-### Adding New task  
-![screen5](ScreenShots/screen5.jpeg)
+### Adding New Task  
+![screen5](ScreenShots/screen5.jpeg =300x)
 
 ---
+
 
 ## Getting Started 🚀
 
