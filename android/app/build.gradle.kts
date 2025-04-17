@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.timetable"
+    namespace = "com.aliasgar.routino"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.timetable"
+        applicationId = "com.aliasgar.routino"
         minSdk = 21
         targetSdk = 35
         versionCode = flutter.versionCode

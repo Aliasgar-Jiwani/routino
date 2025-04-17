@@ -1,4 +1,4 @@
-package com.example.timetable
+package com.aliasgar.routino
 
 import android.app.Service
 import android.content.Intent
