@@ -11,8 +11,8 @@ import 'timetable_provider.dart';
 
 // App theme colors
 class AppColors {
-  static const primary = Color(0xFF6200EE);
-  static const primaryVariant = Color(0xFF3700B3);
+  static const primary = Color(0xFF1976D2); // Darker Blue
+  static const primaryVariant = Color(0xFF1565C0); // Slightly darker blue variant // Darker Blue
   static const secondary = Color(0xFF03DAC6);
   static const secondaryVariant = Color(0xFF018786);
   static const background = Color(0xFFF5F5F5);
@@ -24,13 +24,21 @@ class AppColors {
   static const onSurface = Colors.black;
   static const onError = Colors.white;
 
-  // Task category colors
+// Task category colors
   static const study = Color(0xFF6200EE);
   static const work = Color(0xFF0277BD);
   static const exercise = Color(0xFF388E3C);
   static const leisure = Color(0xFFFF8F00);
   static const meeting = Color(0xFFD32F2F);
   static const other = Color(0xFF5D4037);
+  static const shopping = Color(0xFFFFC107); // Shopping task color
+  static const cooking = Color(0xFF8E24AA); // Cooking task color
+  static const cleaning = Color(0xFF1976D2); // Cleaning task color
+  static const meditation = Color(0xFF8BC34A); // Meditation task color
+  static const reading = Color(0xFF9C27B0); // Reading task color
+  static const family = Color(0xFF00BCD4); // Family time task color
+  static const hobby = Color(0xFF3F51B5); // Hobby task color
+
 }
 
 class HomeScreen extends StatefulWidget {
@@ -1128,7 +1136,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Ti
           ),
 
           SizedBox(height: 24),
-          
         ],
       ),
     );

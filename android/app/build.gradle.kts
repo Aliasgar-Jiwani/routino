@@ -24,8 +24,8 @@ android {
         applicationId = "com.aliasgar.routino"
         minSdk = 21
         targetSdk = 35
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 2  // Update this to a higher unique value each time
+        versionName = "1.1"  // Update versionName as needed
     }
 
     buildTypes {
