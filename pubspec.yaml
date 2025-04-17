@@ -15,8 +15,9 @@ dependencies:
   provider: ^6.1.3 # For state management
   intl: ^0.18.1 # For date and time formatting
   flutter_local_notifications: ^15.1.3
-  timezone: ^0.9.4  
+  timezone: ^0.9.4
   permission_handler: ^12.0.0+1 # Updated version
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:
